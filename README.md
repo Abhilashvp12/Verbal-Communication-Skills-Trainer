@@ -29,5 +29,6 @@ Features
  ├── train.py               # Training module  
  ├── voice.py               # Voice processing module  
  ├── training_data.json      # Predefined training questions  
- ├── assessment_data.json    # Assessment evaluation criteria  
+ ├── assessment_data.json    # Assessment evaluation criteria 
+ ├── requirements.txt
 
