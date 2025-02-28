@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice AI Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 40px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            background-color: #f9f9f9;
+        }
+        #record-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #record-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+        audio {
+            margin-top: 10px;
+            width: 100%;
+        }
+        .response-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>AI Voice Assistant</h1>
+    <div class="container">
+        <button id="record-btn">🎤 Start Recording</button>
+        <p class="status" id="status-text"></p>
+
+        <div class="response-container">
+            <h3>Your Speech:</h3>
+            <p id="transcribed-text">[Your speech will appear here]</p>
+            <audio id="audio-playback" controls></audio>
+
+            <h3>AI Response:</h3>
+            <p id="ai-response">[AI response will appear here]</p>
+            <audio id="ai-voice-response" controls></audio>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            let recordBtn = document.getElementById("record-btn");
+            let statusText = document.getElementById("status-text");
+            let transcribedText = document.getElementById("transcribed-text");
+            let audioPlayback = document.getElementById("audio-playback");
+            let aiResponse = document.getElementById("ai-response");
+            let aiVoiceResponse = document.getElementById("ai-voice-response");
+
+            recordBtn.onclick = async () => {
+                try {
+                    let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                    if (!stream) {
+                        statusText.innerText = "Microphone access granted but no audio detected.";
+                        return;
+                    }
+
+                    let mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" }); // WebM format
+                    let chunks = [];
+
+                    recordBtn.disabled = true;
+                    recordBtn.innerText = "Recording...";
+                    statusText.innerText = "Listening...";
+
+                    mediaRecorder.ondataavailable = event => chunks.push(event.data);
+                    mediaRecorder.onstop = async () => {
+                        let audioBlob = new Blob(chunks, { type: "audio/webm" });
+
+                        // Convert WebM to WAV using AudioContext
+                        let arrayBuffer = await audioBlob.arrayBuffer();
+                        let audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        let audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                        let wavBlob = await encodeWAV(audioBuffer);
+
+                        let formData = new FormData();
+                        formData.append("audio", wavBlob, "audio.wav");
+
+                        recordBtn.disabled = false;
+                        recordBtn.innerText = "🎤 Start Recording";
+                        statusText.innerText = "Processing...";
+
+                        try {
+                            let response = await fetch("/voice_process", { method: "POST", body: formData });
+                            let result = await response.json();
+
+                            if (result.error) {
+                                statusText.innerText = "Error: " + result.error;
+                            } else {
+                                statusText.innerText = "Response generated!";
+
+                                // Display transcribed text
+                                transcribedText.innerText = result.transcribedText || "[No transcription available]";
+
+                                // Display AI response
+                                aiResponse.innerText = result.aiResponse || "[No AI response available]";
+
+                                // Play the recorded audio
+                                audioPlayback.src = URL.createObjectURL(wavBlob);
+
+                                // Play the AI voice response (if available)
+                                if (result.aiVoiceResponseUrl) {
+                                    aiVoiceResponse.src = result.aiVoiceResponseUrl;
+                                } else {
+                                    aiVoiceResponse.src = "";
+                                }
+                            }
+                        } catch (error) {
+                            statusText.innerText = "Error processing request!";
+                            console.error("Error:", error);
+                        }
+                    };
+
+                    mediaRecorder.start();
+                    setTimeout(() => {
+                        mediaRecorder.stop();
+                        stream.getTracks().forEach(track => track.stop());
+                    }, 5000);
+                } catch (error) {
+                    statusText.innerText = "Microphone access denied: " + error.message;
+                    console.error("Microphone access error:", error);
+                }
+            };
+
+            // Function to encode WAV from raw audio buffer
+            function encodeWAV(audioBuffer) {
+                return new Promise(resolve => {
+                    let sampleRate = audioBuffer.sampleRate;
+                    let numChannels = audioBuffer.numberOfChannels;
+                    let numSamples = audioBuffer.length;
+
+                    let wavBuffer = new ArrayBuffer(44 + numSamples * numChannels * 2);
+                    let view = new DataView(wavBuffer);
+
+                    function writeString(view, offset, string) {
+                        for (let i = 0; i < string.length; i++) {
+                            view.setUint8(offset + i, string.charCodeAt(i));
+                        }
+                    }
+
+                    function writeInt16(view, offset, value) {
+                        view.setInt16(offset, value, true);
+                    }
+
+                    function writeInt32(view, offset, value) {
+                        view.setInt32(offset, value, true);
+                    }
+
+                    // WAV header
+                    writeString(view, 0, "RIFF");
+                    writeInt32(view, 4, 36 + numSamples * numChannels * 2);
+                    writeString(view, 8, "WAVE");
+                    writeString(view, 12, "fmt ");
+                    writeInt32(view, 16, 16);
+                    writeInt16(view, 20, 1); // PCM format
+                    writeInt16(view, 22, numChannels);
+                    writeInt32(view, 24, sampleRate);
+                    writeInt32(view, 28, sampleRate * numChannels * 2);
+                    writeInt16(view, 32, numChannels * 2);
+                    writeInt16(view, 34, 16);
+                    writeString(view, 36, "data");
+                    writeInt32(view, 40, numSamples * numChannels * 2);
+
+                    // PCM Data
+                    let offset = 44;
+                    for (let i = 0; i < numSamples; i++) {
+                        for (let channel = 0; channel < numChannels; channel++) {
+                            let sample = audioBuffer.getChannelData(channel)[i] * 32767;
+                            writeInt16(view, offset, sample);
+                            offset += 2;
+                        }
+                    }
+
+                    resolve(new Blob([view], { type: "audio/wav" }));
+                });
+            }
+        });
+    </script>
+</body>
+</html>

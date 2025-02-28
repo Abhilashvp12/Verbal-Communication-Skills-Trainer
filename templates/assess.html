@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentation Assessment</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        h1, h2 {
+            color: #2c3e50;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        #assess-form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        input[type="file"] {
+            margin-bottom: 15px;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #assessment-feedback {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 30px auto;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            #assess-form, #assessment-feedback {
+                padding: 15px;
+            }
+
+            textarea {
+                min-height: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Verbal Communication Trainer</h1>
+    
+    <form id="assess-form" enctype="multipart/form-data">
+        <label>Submit a Presentation:</label><br>
+        <textarea id="presentation-text" placeholder="Enter your script here..."></textarea><br>
+
+        <label>Or upload a voice recording (MP3, WAV):</label>
+        <input type="file" id="voice-file" accept="audio/*"><br>
+
+        <button type="submit">Analyze</button>
+    </form>
+
+    <h2>Assessment Feedback</h2>
+    <div id="assessment-feedback"></div>
+
+    <script>
+        document.getElementById("assess-form").onsubmit = async function(event) {
+            event.preventDefault();
+
+            let formData = new FormData();
+            let text = document.getElementById("presentation-text").value;
+            let voiceFile = document.getElementById("voice-file").files[0];
+
+            if (text.trim()) {
+                formData.append("script", text);
+            } else if (voiceFile) {
+                formData.append("voice", voiceFile);
+            } else {
+                alert("Please enter text or upload a voice file.");
+                return;
+            }
+
+            let response = await fetch("/assess_process", {
+                method: "POST",
+                body: formData
+            });
+
+            let result = await response.json();
+            document.getElementById("assessment-feedback").innerText = result.feedback || "Error processing request.";
+        };
+    </script>
+</body>
+</html>

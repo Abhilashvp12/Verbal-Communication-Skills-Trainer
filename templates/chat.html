@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with AI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+            text-align: center;
+        }
+
+        #chat-form {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 20px;
+        }
+
+        #user-message {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #user-message:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 8px rgba(52, 152, 219, 0.3);
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #chat-response {
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #333;
+            min-height: 100px;
+            overflow-y: auto;
+            word-wrap: break-word;
+        }
+
+        #chat-response.error {
+            color: #e74c3c;
+            border-color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chat with AI</h1>
+    <form id="chat-form">
+        <input type="text" id="user-message" placeholder="Type your message..." required>
+        <button type="submit">Send</button>
+    </form>
+    <div id="chat-response"></div>
+
+    <script>
+        document.getElementById("chat-form").onsubmit = async function(event) {
+            event.preventDefault();
+            let userMessage = document.getElementById("user-message").value;
+
+            try {
+                let response = await fetch("/chat_process", {
+                    method: "POST",
+                    body: JSON.stringify({ "message": userMessage }),
+                    headers: { "Content-Type": "application/json" }
+                });
+
+                let result = await response.json();
+                console.log("AI Response:", result);
+
+                let chatResponse = document.getElementById("chat-response");
+                if (response.ok) {
+                    chatResponse.innerText = "AI: " + result.response;
+                    chatResponse.classList.remove("error");
+                } else {
+                    chatResponse.innerText = "⚠️ Error: " + result.response;
+                    chatResponse.classList.add("error");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                let chatResponse = document.getElementById("chat-response");
+                chatResponse.innerText = "⚠️ Network or server error. Please try again.";
+                chatResponse.classList.add("error");
+            }
+        };
+    </script>
+</body>
+</html>

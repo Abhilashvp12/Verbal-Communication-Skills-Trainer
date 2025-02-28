@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Activities</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        h1, h2 {
+            color: #2c3e50;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        select, textarea, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #training-topic {
+            font-size: 18px;
+            font-weight: bold;
+            color: #27ae60;
+            margin-bottom: 20px;
+        }
+
+        #training-feedback {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            select, textarea, button {
+                font-size: 14px;
+            }
+
+            #training-topic {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Training Activities</h1>
+
+    <label for="module-select">Choose Training Module:</label>
+    <select id="module-select">
+        <option value="Impromptu Speaking">Impromptu Speaking</option>
+        <option value="Storytelling">Storytelling</option>
+        <option value="Conflict Resolution">Conflict Resolution</option>
+    </select>
+
+    <button onclick="startTraining()">Start Training</button>
+    <p id="training-topic"></p>
+
+    <textarea id="user-response" placeholder="Write your response..."></textarea>
+    <button onclick="submitResponse()">Submit</button>
+
+    <h2>Feedback</h2>
+    <div id="training-feedback"></div>
+
+    <script>
+        async function startTraining() {
+            let module = document.getElementById("module-select").value;
+            let response = await fetch("/train_topic", {
+                method: "POST",
+                body: JSON.stringify({ "module": module }),
+                headers: { "Content-Type": "application/json" }
+            });
+
+            let result = await response.json();
+            document.getElementById("training-topic").innerText = "Topic: " + result.topic;
+        }
+
+        async function submitResponse() {
+            let module = document.getElementById("module-select").value;
+            let userResponse = document.getElementById("user-response").value;
+
+            let response = await fetch("/train_process", {
+                method: "POST",
+                body: new URLSearchParams({ "response": userResponse, "module": module }),
+                headers: { "Content-Type": "application/x-www-form-urlencoded" }
+            });
+
+            let result = await response.json();
+            document.getElementById("training-feedback").innerText = result.feedback || "Error processing request.";
+        }
+    </script>
+</body>
+</html>
